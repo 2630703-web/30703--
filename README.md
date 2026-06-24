@@ -3,4 +3,4 @@
 # 사용한 AI : Chat GPT
 # 처음 입력한 프롬포트 : HTML, CSS, JavaScript 를 하나의 index.html 파일에 넣어서 할 일 관리 앱을 만들어줘. 할 일을 입력하고 추가할 수 있고, 완료 표시와 삭제 기능이 있었으면 좋겠어. 초보자도 이해할 수 있게 코드를 너무 복잡하게 만들지 말아줘.
 # 수정 요청한 내용 : 그럼 여기서 배경을 조금 더 꾸며줄 수 있을까?
-# 제출 링크: https://zrr.kr/CJKLdj , 
+# 제출 링크: https://zrr.kr/CJKLdj , https://github.com/2630703-web/30703--
