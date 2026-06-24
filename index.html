@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>지뢰찾기</title>
+
+<style>
+body{
+    font-family: Arial;
+    text-align:center;
+    background:#f5f5f5;
+}
+
+h1{
+    color:#333;
+}
+
+#stageMenu{
+    margin:20px;
+}
+
+button{
+    padding:10px 15px;
+    margin:5px;
+    cursor:pointer;
+}
+
+.completed{
+    background:lightgreen;
+}
+
+#gameInfo{
+    margin:10px;
+    font-size:20px;
+}
+
+#board{
+    display:grid;
+    gap:2px;
+    justify-content:center;
+    margin-top:20px;
+}
+
+.cell{
+    width:40px;
+    height:40px;
+    background:#ccc;
+    border:1px solid #999;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.open{
+    background:white;
+}
+
+.mine{
+    background:red;
+}
+
+.flag{
+    background:gold;
+}
+
+#result{
+    margin-top:20px;
+    font-size:22px;
+}
+
+#badge{
+    margin-top:10px;
+    color:purple;
+    font-size:25px;
+    font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<h1>💣 지뢰찾기</h1>
+
+<div id="stageMenu">
+    <button id="stage4">4×4</button>
+    <button id="stage8">8×8</button>
+    <button id="stage16">16×16</button>
+</div>
+
+<div id="gameInfo">
+    ⏱️ 시간 : <span id="timer">0</span>초
+</div>
+
+<div id="board"></div>
+
+<div id="result"></div>
+<div id="badge"></div>
+
+<script>
+
+const board = document.getElementById("board");
+const timerText = document.getElementById("timer");
+const result = document.getElementById("result");
+const badge = document.getElementById("badge");
+
+let size;
+let mineCount;
+let cells = [];
+let timer = 0;
+let timerInterval;
+let opened = 0;
+
+let clearStage = {
+    4:false,
+    8:false,
+    16:false
+};
+
+
+// 스테이지 시작
+function startGame(stage){
+
+    size = stage;
+
+    if(stage === 4) mineCount = 2;
+    if(stage === 8) mineCount = 10;
+    if(stage === 16) mineCount = 40;
+
+    board.innerHTML = "";
+    result.innerHTML = "";
+    opened = 0;
+
+    clearInterval(timerInterval);
+    timer = 0;
+    timerText.textContent = timer;
+
+    timerInterval = setInterval(()=>{
+        timer++;
+        timerText.textContent = timer;
+    },1000);
+
+    board.style.gridTemplateColumns =
+        `repeat(${size},40px)`;
+
+    cells = [];
+
+    // 배열 생성
+    for(let i=0;i<size*size;i++){
+        cells.push({
+            mine:false,
+            opened:false,
+            flag:false,
+            element:null
+        });
+    }
+
+    // 지뢰 배치
+    let placed = 0;
+
+    while(placed < mineCount){
+
+        let random =
+        Math.floor(Math.random()*cells.length);
+
+        if(!cells[random].mine){
+            cells[random].mine = true;
+            placed++;
+        }
+    }
+
+    // 칸 만들기
+    cells.forEach((cell,index)=>{
+
+        const div =
+        document.createElement("div");
+
+        div.className = "cell";
+
+        // 좌클릭
+        div.addEventListener("click",()=>{
+            openCell(index);
+        });
+
+        // 우클릭 깃발
+        div.addEventListener("contextmenu",(e)=>{
+            e.preventDefault();
+
+            if(cell.opened) return;
+
+            cell.flag = !cell.flag;
+
+            div.textContent =
+            cell.flag ? "🚩" : "";
+        });
+
+        board.appendChild(div);
+
+        cell.element = div;
+    });
+}
+
+
+// 주변 지뢰 수
+function countMines(index){
+
+    let row = Math.floor(index/size);
+    let col = index%size;
+
+    let count = 0;
+
+    for(let r=-1;r<=1;r++){
+        for(let c=-1;c<=1;c++){
+
+            let nr=row+r;
+            let nc=col+c;
+
+            if(
+                nr>=0 &&
+                nr<size &&
+                nc>=0 &&
+                nc<size
+            ){
+
+                let nIndex =
+                nr*size+nc;
+
+                if(cells[nIndex].mine)
+                    count++;
+            }
+        }
+    }
+
+    return count;
+}
+
+
+// 칸 열기
+function openCell(index){
+
+    let cell = cells[index];
+
+    if(cell.opened || cell.flag)
+        return;
+
+    cell.opened = true;
+    opened++;
+
+    let div = cell.element;
+
+    div.classList.add("open");
+
+    if(cell.mine){
+
+        div.textContent = "💣";
+        div.classList.add("mine");
+
+        gameOver();
+        return;
+    }
+
+    let count = countMines(index);
+
+    if(count > 0)
+        div.textContent = count;
+
+    checkWin();
+}
+
+
+// 게임오버
+function gameOver(){
+
+    clearInterval(timerInterval);
+
+    result.innerHTML =
+    "💥 게임 오버!";
+}
+
+
+// 승리 체크
+function checkWin(){
+
+    let target =
+    size*size - mineCount;
+
+    if(opened === target){
+
+        clearInterval(timerInterval);
+
+        let stars = getStars();
+
+        result.innerHTML =
+        `🎉 클리어!<br>${stars}`;
+
+        clearStage[size] = true;
+
+        updateStageButtons();
+
+        checkMaster();
+    }
+}
+
+
+// 별 평가
+function getStars(){
+
+    if(size === 4){
+
+        if(timer <= 15)
+            return "⭐⭐⭐";
+
+        if(timer <= 25)
+            return "⭐⭐";
+
+        return "⭐";
+    }
+
+    if(size === 8){
+
+        if(timer <= 60)
+            return "⭐⭐⭐";
+
+        if(timer <= 90)
+            return "⭐⭐";
+
+        return "⭐";
+    }
+
+    if(size === 16){
+
+        if(timer <= 180)
+            return "⭐⭐⭐";
+
+        if(timer <= 300)
+            return "⭐⭐";
+
+        return "⭐";
+    }
+}
+
+
+// 체크 표시
+function updateStageButtons(){
+
+    document.getElementById("stage4")
+        .textContent =
+        clearStage[4]
+        ? "4×4 ✔"
+        : "4×4";
+
+    document.getElementById("stage8")
+        .textContent =
+        clearStage[8]
+        ? "8×8 ✔"
+        : "8×8";
+
+    document.getElementById("stage16")
+        .textContent =
+        clearStage[16]
+        ? "16×16 ✔"
+        : "16×16";
+}
+
+
+// 마스터 배지
+function checkMaster(){
+
+    if(
+        clearStage[4] &&
+        clearStage[8] &&
+        clearStage[16]
+    ){
+
+        badge.innerHTML =
+        "🏆 마스터 배지 획득!";
+    }
+}
+
+
+// 버튼 연결
+document.getElementById("stage4")
+.addEventListener("click",()=>{
+    startGame(4);
+});
+
+document.getElementById("stage8")
+.addEventListener("click",()=>{
+    startGame(8);
+});
+
+document.getElementById("stage16")
+.addEventListener("click",()=>{
+    startGame(16);
+});
+
+</script>
+
+</body>
+</html>
