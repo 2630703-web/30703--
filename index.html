@@ -2,399 +2,165 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>지뢰찾기</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>할 일 관리 앱</title>
 
 <style>
-body{
-    font-family: Arial;
-    text-align:center;
-    background:#f5f5f5;
-}
+    body{
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #74ebd5, #9face6);
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      padding-top:50px;
+      min-height:100vh;
+      overflow:hidden;
+    }
 
-h1{
-    color:#333;
-}
+    .container{
+      width:400px;
+      background:rgba(255,255,255,0.9);
+      backdrop-filter: blur(10px);
+      padding:20px;
+      border-radius:15px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.15);
+      position:relative;
+      z-index:2;
+    }
 
-#stageMenu{
-    margin:20px;
-}
+    h1{
+        text-align:center;
+    }
 
-button{
-    padding:10px 15px;
-    margin:5px;
-    cursor:pointer;
-}
+    .input-area{
+        display:flex;
+        gap:10px;
+        margin-bottom:20px;
+    }
 
-.completed{
-    background:lightgreen;
-}
+    input{
+        flex:1;
+        padding:10px;
+        font-size:16px;
+    }
 
-#gameInfo{
-    margin:10px;
-    font-size:20px;
-}
+    button{
+        padding:10px 15px;
+        cursor:pointer;
+    }
 
-#board{
-    display:grid;
-    gap:2px;
-    justify-content:center;
-    margin-top:20px;
-}
+    ul{
+        list-style:none;
+        padding:0;
+    }
 
-.cell{
-    width:40px;
-    height:40px;
-    background:#ccc;
-    border:1px solid #999;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-weight:bold;
-    cursor:pointer;
-}
+    li{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        background:#eee;
+        padding:10px;
+        margin-bottom:8px;
+        border-radius:5px;
+    }
 
-.open{
-    background:white;
-}
+    .left{
+        display:flex;
+        align-items:center;
+        gap:10px;
+    }
 
-.mine{
-    background:red;
-}
+    .completed{
+        text-decoration:line-through;
+        color:gray;
+    }
 
-.flag{
-    background:gold;
-}
-
-#result{
-    margin-top:20px;
-    font-size:22px;
-}
-
-#badge{
-    margin-top:10px;
-    color:purple;
-    font-size:25px;
-    font-weight:bold;
-}
+    .delete-btn{
+        background:#ff4d4d;
+        color:white;
+        border:none;
+        border-radius:5px;
+    }
 </style>
 </head>
 
 <body>
 
-<h1>💣 지뢰찾기</h1>
+<div class="container">
+    <h1>📝 할 일 관리</h1>
 
-<div id="stageMenu">
-    <button id="stage4">4×4</button>
-    <button id="stage8">8×8</button>
-    <button id="stage16">16×16</button>
+    <div class="input-area">
+        <input type="text" id="todoInput" placeholder="할 일을 입력하세요">
+        <button onclick="addTodo()">추가</button>
+    </div>
+
+    <ul id="todoList"></ul>
 </div>
-
-<div id="gameInfo">
-    ⏱️ 시간 : <span id="timer">0</span>초
-</div>
-
-<div id="board"></div>
-
-<div id="result"></div>
-<div id="badge"></div>
 
 <script>
+    const input = document.getElementById("todoInput");
+    const list = document.getElementById("todoList");
 
-const board = document.getElementById("board");
-const timerText = document.getElementById("timer");
-const result = document.getElementById("result");
-const badge = document.getElementById("badge");
+    // 할 일 추가 함수
+    function addTodo(){
 
-let size;
-let mineCount;
-let cells = [];
-let timer = 0;
-let timerInterval;
-let opened = 0;
+        const text = input.value.trim();
 
-let clearStage = {
-    4:false,
-    8:false,
-    16:false
-};
-
-
-// 스테이지 시작
-function startGame(stage){
-
-    size = stage;
-
-    if(stage === 4) mineCount = 2;
-    if(stage === 8) mineCount = 10;
-    if(stage === 16) mineCount = 40;
-
-    board.innerHTML = "";
-    result.innerHTML = "";
-    opened = 0;
-
-    clearInterval(timerInterval);
-    timer = 0;
-    timerText.textContent = timer;
-
-    timerInterval = setInterval(()=>{
-        timer++;
-        timerText.textContent = timer;
-    },1000);
-
-    board.style.gridTemplateColumns =
-        `repeat(${size},40px)`;
-
-    cells = [];
-
-    // 배열 생성
-    for(let i=0;i<size*size;i++){
-        cells.push({
-            mine:false,
-            opened:false,
-            flag:false,
-            element:null
-        });
-    }
-
-    // 지뢰 배치
-    let placed = 0;
-
-    while(placed < mineCount){
-
-        let random =
-        Math.floor(Math.random()*cells.length);
-
-        if(!cells[random].mine){
-            cells[random].mine = true;
-            placed++;
+        // 빈칸이면 추가하지 않음
+        if(text === ""){
+            alert("할 일을 입력하세요!");
+            return;
         }
+
+        // li 생성
+        const li = document.createElement("li");
+
+        // 왼쪽 영역
+        const leftDiv = document.createElement("div");
+        leftDiv.className = "left";
+
+        // 체크박스 생성
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+
+        // 할 일 텍스트 생성
+        const span = document.createElement("span");
+        span.textContent = text;
+
+        // 체크 시 완료 표시
+        checkbox.addEventListener("change", function(){
+            span.classList.toggle("completed");
+        });
+
+        leftDiv.appendChild(checkbox);
+        leftDiv.appendChild(span);
+
+        // 삭제 버튼 생성
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "삭제";
+        deleteBtn.className = "delete-btn";
+
+        // 삭제 기능
+        deleteBtn.addEventListener("click", function(){
+            li.remove();
+        });
+
+        li.appendChild(leftDiv);
+        li.appendChild(deleteBtn);
+
+        list.appendChild(li);
+
+        // 입력창 비우기
+        input.value = "";
+        input.focus();
     }
 
-    // 칸 만들기
-    cells.forEach((cell,index)=>{
-
-        const div =
-        document.createElement("div");
-
-        div.className = "cell";
-
-        // 좌클릭
-        div.addEventListener("click",()=>{
-            openCell(index);
-        });
-
-        // 우클릭 깃발
-        div.addEventListener("contextmenu",(e)=>{
-            e.preventDefault();
-
-            if(cell.opened) return;
-
-            cell.flag = !cell.flag;
-
-            div.textContent =
-            cell.flag ? "🚩" : "";
-        });
-
-        board.appendChild(div);
-
-        cell.element = div;
+    // Enter 키로 추가
+    input.addEventListener("keydown", function(event){
+        if(event.key === "Enter"){
+            addTodo();
+        }
     });
-}
-
-
-// 주변 지뢰 수
-function countMines(index){
-
-    let row = Math.floor(index/size);
-    let col = index%size;
-
-    let count = 0;
-
-    for(let r=-1;r<=1;r++){
-        for(let c=-1;c<=1;c++){
-
-            let nr=row+r;
-            let nc=col+c;
-
-            if(
-                nr>=0 &&
-                nr<size &&
-                nc>=0 &&
-                nc<size
-            ){
-
-                let nIndex =
-                nr*size+nc;
-
-                if(cells[nIndex].mine)
-                    count++;
-            }
-        }
-    }
-
-    return count;
-}
-
-
-// 칸 열기
-function openCell(index){
-
-    let cell = cells[index];
-
-    if(cell.opened || cell.flag)
-        return;
-
-    cell.opened = true;
-    opened++;
-
-    let div = cell.element;
-
-    div.classList.add("open");
-
-    if(cell.mine){
-
-        div.textContent = "💣";
-        div.classList.add("mine");
-
-        gameOver();
-        return;
-    }
-
-    let count = countMines(index);
-
-    if(count > 0)
-        div.textContent = count;
-
-    checkWin();
-}
-
-
-// 게임오버
-function gameOver(){
-
-    clearInterval(timerInterval);
-
-    result.innerHTML =
-    "💥 게임 오버!";
-}
-
-
-// 승리 체크
-function checkWin(){
-
-    let target =
-    size*size - mineCount;
-
-    if(opened === target){
-
-        clearInterval(timerInterval);
-
-        let stars = getStars();
-
-        result.innerHTML =
-        `🎉 클리어!<br>${stars}`;
-
-        clearStage[size] = true;
-
-        updateStageButtons();
-
-        checkMaster();
-    }
-}
-
-
-// 별 평가
-function getStars(){
-
-    if(size === 4){
-
-        if(timer <= 15)
-            return "⭐⭐⭐";
-
-        if(timer <= 25)
-            return "⭐⭐";
-
-        return "⭐";
-    }
-
-    if(size === 8){
-
-        if(timer <= 60)
-            return "⭐⭐⭐";
-
-        if(timer <= 90)
-            return "⭐⭐";
-
-        return "⭐";
-    }
-
-    if(size === 16){
-
-        if(timer <= 180)
-            return "⭐⭐⭐";
-
-        if(timer <= 300)
-            return "⭐⭐";
-
-        return "⭐";
-    }
-}
-
-
-// 체크 표시
-function updateStageButtons(){
-
-    document.getElementById("stage4")
-        .textContent =
-        clearStage[4]
-        ? "4×4 ✔"
-        : "4×4";
-
-    document.getElementById("stage8")
-        .textContent =
-        clearStage[8]
-        ? "8×8 ✔"
-        : "8×8";
-
-    document.getElementById("stage16")
-        .textContent =
-        clearStage[16]
-        ? "16×16 ✔"
-        : "16×16";
-}
-
-
-// 마스터 배지
-function checkMaster(){
-
-    if(
-        clearStage[4] &&
-        clearStage[8] &&
-        clearStage[16]
-    ){
-
-        badge.innerHTML =
-        "🏆 마스터 배지 획득!";
-    }
-}
-
-
-// 버튼 연결
-document.getElementById("stage4")
-.addEventListener("click",()=>{
-    startGame(4);
-});
-
-document.getElementById("stage8")
-.addEventListener("click",()=>{
-    startGame(8);
-});
-
-document.getElementById("stage16")
-.addEventListener("click",()=>{
-    startGame(16);
-});
-
 </script>
 
 </body>
